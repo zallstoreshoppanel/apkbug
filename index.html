@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Toko APK Bug</title>
+<style>
+/* Reset & basic */
+* {margin:0; padding:0; box-sizing:border-box;}
+body {font-family: 'Poppins', sans-serif; background:#111; color:#fff; overflow-x:hidden;}
+button {cursor:pointer; transition:0.3s;}
+
+/* Hero Section */
+.hero {height:100vh; display:flex; justify-content:center; align-items:center; background:linear-gradient(45deg,#6a11cb,#2575fc); text-align:center; animation:fadeIn 2s ease-in;}
+.hero h1 {font-size:3rem; margin-bottom:10px;}
+.hero p {font-size:1.2rem; margin-bottom:20px;}
+.hero button {padding:10px 20px; background:#fff; color:#111; border:none; border-radius:10px; font-weight:bold; transform:scale(1); transition:0.3s;}
+.hero button:hover {transform:scale(1.1);}
+
+/* Product Section */
+.product {padding:50px 20px; text-align:center; animation:slideUp 1.5s ease-out;}
+.product h2 {font-size:2rem; margin-bottom:10px; color:#6a11cb;}
+.product p {font-size:1.2rem;}
+
+/* Form Section */
+.purchase {padding:50px 20px; background:#222; border-radius:15px; max-width:600px; margin:50px auto; animation:fadeIn 2s ease-in;}
+.purchase form {display:flex; flex-direction:column;}
+.purchase label {margin:10px 0 5px;}
+.purchase input, .purchase select {padding:10px; border-radius:10px; border:none; margin-bottom:10px;}
+.purchase button {padding:10px; border:none; border-radius:10px; background:#6a11cb; color:#fff; font-weight:bold;}
+#status {margin-top:15px; font-weight:bold;}
+.qris-img {max-width:300px; margin:15px auto; display:block; border-radius:15px; box-shadow:0 0 15px rgba(0,0,0,0.5);}
+
+/* Animations */
+@keyframes fadeIn {from{opacity:0;} to{opacity:1;}}
+@keyframes slideUp {from{opacity:0; transform:translateY(50px);} to{opacity:1; transform:translateY(0);}}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+
+<!-- Hero Section -->
+<section class="hero">
+  <div class="hero-content">
+    <h1>Selamat Datang di Toko APK Bug</h1>
+    <p>Beli APK dengan mudah, pembayaran QRIS, dan bukti otomatis terkirim ke Telegram</p>
+    <button onclick="scrollToForm()">Beli Sekarang</button>
+  </div>
+</section>
+
+<!-- Produk -->
+<section class="product">
+  <h2>APK Bug Premium</h2>
+  <p>Harga: 10.000 IDR</p>
+</section>
+
+<!-- Form Pembelian -->
+<section class="purchase" id="purchase">
+  <h2>Form Pembelian</h2>
+  <form id="buyForm">
+    <label>Nama:</label>
+    <input type="text" name="name" required>
+
+    <label>Email (untuk kirim APK):</label>
+    <input type="email" name="email" required>
+
+    <label>Metode Pembayaran:</label>
+    <select name="method" required>
+      <option value="qris">QRIS</option>
+    </select>
+
+    <!-- QRIS Image -->
+    <img src="https://files.catbox.moe/vqfiyj.png" alt="QRIS" class="qris-img">
+
+    <label>Upload Bukti Pembayaran:</label>
+    <input type="file" name="proof" id="proof" accept="image/*" required>
+
+    <button type="submit">Kirim Bukti</button>
+  </form>
+  <div id="status"></div>
+</section>
+
+<script>
+function scrollToForm() {
+    document.getElementById('purchase').scrollIntoView({ behavior: 'smooth' });
+}
+
+// Telegram config
+const TELEGRAM_TOKEN = "8398763387:AAEsFt7vgaHfrstQ6OjwV5QTvf_W8ufsR7Q";
+const TELEGRAM_CHAT_ID = "8042154625";
+
+const form = document.getElementById('buyForm');
+const status = document.getElementById('status');
+
+form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    status.innerHTML = "🔄 Memproses bukti...";
+
+    const name = form.name.value;
+    const email = form.email.value;
+    const method = form.method.value;
+    const file = document.getElementById('proof').files[0];
+
+    if(!file){
+        status.innerHTML = "❌ Upload bukti pembayaran terlebih dahulu!";
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async function() {
+        try {
+            // Kirim info pemesanan
+            await axios.post(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
+                chat_id: TELEGRAM_CHAT_ID,
+                text: `💰 Pemesanan Baru!\nNama: ${name}\nEmail: ${email}\nMetode: ${method}\nHarga: 10.000 IDR`
+            });
+
+            // Kirim foto bukti pembayaran
+            const formData = new FormData();
+            formData.append('chat_id', TELEGRAM_CHAT_ID);
+            formData.append('photo', file);
+            formData.append('caption', `Bukti Pembayaran dari ${name}`);
+
+            await axios.post(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendPhoto`, formData, {
+                headers: {'Content-Type': 'multipart/form-data'}
+            });
+
+            status.innerHTML = "✅ Bukti terkirim ke Telegram!";
+            form.reset();
+        } catch(err) {
+            console.error(err);
+            status.innerHTML = "❌ Gagal mengirim bukti, coba lagi!";
+        }
+    };
+    reader.readAsDataURL(file);
+});
+</script>
+
+</body>
+</html>
